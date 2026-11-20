@@ -36,3 +36,6 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 end
+
+# json 3.x removed the quirks_mode option that Rails 8.0 still passes when parsing JSON params.
+gem "json", "< 3"
