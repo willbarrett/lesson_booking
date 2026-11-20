@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Book a lesson</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 28rem; margin: 3rem auto; padding: 0 1rem; color: #222; }
+    h1 { font-size: 1.5rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    select, input { width: 100%; padding: 0.5rem; margin-top: 0.25rem; font-size: 1rem; box-sizing: border-box; }
+    button { margin-top: 1.5rem; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
+    #result { margin-top: 1.5rem; padding: 1rem; border-radius: 6px; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 0.85rem; display: none; }
+    #result.ok { display: block; background: #e7f6ea; border: 1px solid #9fd5aa; }
+    #result.error { display: block; background: #fdecec; border: 1px solid #f0a8a8; }
+  </style>
+</head>
+<body>
+  <h1>Book a lesson</h1>
+
+  <form id="booking-form">
+    <label for="teacher_id">Teacher</label>
+    <select id="teacher_id" name="teacher_id" required>
+      <% @teachers.each do |teacher| %>
+        <option value="<%= teacher.id %>"><%= teacher.name %></option>
+      <% end %>
+    </select>
+
+    <label for="student_id">Student</label>
+    <select id="student_id" name="student_id" required>
+      <% @students.each do |student| %>
+        <option value="<%= student.id %>"><%= student.name %></option>
+      <% end %>
+    </select>
+
+    <label for="starts_at">Starts at (your local time)</label>
+    <input type="datetime-local" id="starts_at" name="starts_at" step="900" required>
+
+    <label for="duration_minutes">Duration</label>
+    <select id="duration_minutes" name="duration_minutes">
+      <option value="30">30 minutes</option>
+      <option value="45">45 minutes</option>
+      <option value="60" selected>60 minutes</option>
+    </select>
+
+    <label for="price_cents">Price ($)</label>
+    <input type="number" id="price_cents" name="price" min="0" step="0.01" value="50.00" required>
+
+    <button type="submit">Book lesson</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById("booking-form");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+
+      const body = {
+        teacher_id: data.get("teacher_id"),
+        student_id: data.get("student_id"),
+        // Send an ISO timestamp with the browser's offset so the server doesn't read it as UTC.
+        starts_at: new Date(data.get("starts_at")).toISOString(),
+        duration_minutes: data.get("duration_minutes"),
+        price_cents: Math.round(parseFloat(data.get("price")) * 100)
+      };
+
+      result.className = "";
+      try {
+        const response = await fetch("/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const text = await response.text();
+        let pretty = text;
+        try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (_) {}
+        result.textContent = `${response.status} ${response.statusText}\n\n${pretty}`;
+        result.className = response.ok ? "ok" : "error";
+      } catch (error) {
+        result.textContent = `Request failed: ${error}`;
+        result.className = "error";
+      }
+    });
+  </script>
+</body>
+</html>
